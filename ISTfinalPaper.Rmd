@@ -1,8 +1,5 @@
 ---
 title: "IST Final project"
-output:
-  pdf_document: default
-  html_notebook: default
 ---
 
 # Introduction
@@ -124,7 +121,7 @@ for (i in exemplars){
 
 ```
 
-```{r compare networks between the destinations}
+```{r compare networks between all destinations}
 
 #Create matrix of destinations
 
@@ -144,25 +141,48 @@ for (a in datasets){
 
 diag(A)<-0
 
+```
+
+```{r network graph between all destinations}
+library(igraph)
+network <- graph.adjacency(A, mode="undirected", weighted=TRUE)
+E(network)$width <- E(network)$weight*50
+#png(filename="all_network.png") #save the plot
+plot(network)
+#dev.off()
+```
+
+```{r compare networks between US destinations}
 #just the US
-A = matrix(nrow=10, ncol=10)
-dimnames(A) = list(
-  c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea",  "Acadia"),         # row names 
-  c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea", "Acadia")) # column names 
+US <- c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Acadia")
+
+C = matrix(nrow=9, ncol=9)
+dimnames(C) = list(
+  c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA",  "Acadia"),         # row names 
+  c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Acadia")) # column names 
 
 #Calculate overlapping number of users
-for (a in datasets){
-  for (b in datasets){
+for (a in US){
+  for (b in US){
     i <- get(a)
     j <- get(b)
-    A[a,b] <- length(intersect(i$user, j$user))/length(intersect(i$user, i$user))
+    C[a,b] <- length(intersect(i$user, j$user))/length(intersect(i$user, i$user))
   }
 }
 
-diag(A)<-0
+diag(C)<-0
+```
 
+```{r network graph between US destinations}
+library(igraph)
+network <- graph.adjacency(A, mode="undirected", weighted=TRUE)
+E(network)$width <- E(network)$weight*50
+png(filename="all_network.png")
+plot(network)
+dev.off()
+```
 
-
+```{r compare networks city-level}
 #just the cities
 B = matrix(nrow=6, ncol=6)
 dimnames(B) = list(
@@ -184,17 +204,11 @@ diag(B)<-0
 ```
 
 ```{r network graph between destinations}
-library(igraph)
-network <- graph.adjacency(A, mode="undirected", weighted=TRUE)
-E(network)$width <- E(network)$weight*50
-png(filename="all_network.png")
-plot(network)
-dev.off()
-
 network <- graph.adjacency(B, mode="undirected", weighted=TRUE)
 E(network)$width <- E(network)$weight*100
 plot(network)
 ```
+
 
 ```{r comparison with exmplars}
 
