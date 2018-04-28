@@ -204,7 +204,7 @@ diag(B)<-0
 
 ```{r network graph between destinations}
 network <- graph.adjacency(B, mode="undirected", weighted=TRUE)
-E(network)$width <- E(network)$weight*100
+E(network)$width <- E(network)$weight*150
 png(filename="cities_network.png")
 plot(network)
 dev.off()
@@ -212,25 +212,24 @@ dev.off()
 
 
 ```{r comparison with exmplars}
-
-C = matrix(nrow=6, ncol=6)
-dimnames(C) = list(
-  c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia"),         # row names 
+D = matrix(nrow=10, ncol=6)
+dimnames(D) = list(
+  c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea",  "Acadia"),         # row names 
   c("naturelover", "shopping", "artCulture", "heritage", "adventure","sports")) # column names 
 
 #Calculate overlapping number of users
-for (a in cities){
+for (a in datasets){
   for (b in exemplars){
     i <- get(a)
     j <- get(b)
-    C[a,b] <- length(intersect(i$user, j$user))/length(intersect(i$user, i$user))
+    D[a,b] <- length(intersect(i$user, j$user))/length(intersect(i$user, i$user))
   }
 }
 
-C <- tbl_df(C)
-data <- 100*C
+D <- tbl_df(D)
+data <- 100*D
 
-data$destination = c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia")
+data$destination = c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea",  "Acadia")
 
 data <- data %>%
   gather(1:6, key="category", value="number")
