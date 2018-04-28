@@ -147,9 +147,9 @@ diag(A)<-0
 library(igraph)
 network <- graph.adjacency(A, mode="undirected", weighted=TRUE)
 E(network)$width <- E(network)$weight*50
-#png(filename="all_network.png") #save the plot
+png(filename="all_network.png") #save the plot
 plot(network)
-#dev.off()
+dev.off()
 ```
 
 ```{r compare networks between US destinations}
@@ -174,22 +174,21 @@ diag(C)<-0
 ```
 
 ```{r network graph between US destinations}
-library(igraph)
-network <- graph.adjacency(A, mode="undirected", weighted=TRUE)
+network <- graph.adjacency(C, mode="undirected", weighted=TRUE)
 E(network)$width <- E(network)$weight*50
-png(filename="all_network.png")
+png(filename="US_network.png")
 plot(network)
 dev.off()
 ```
 
 ```{r compare networks city-level}
 #just the cities
-B = matrix(nrow=6, ncol=6)
+B = matrix(nrow=5, ncol=5)
 dimnames(B) = list(
-  c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia"),         # row names 
-  c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia")) # column names 
+  c("Pittsburg", "Philly", "Seattle", "Charleston", "Acadia"),         # row names 
+  c("Pittsburg", "Philly", "Seattle", "Charleston", "Acadia")) # column names 
 
-cities<-c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia")
+cities<-c("Pittsburg", "Philly", "Seattle", "Charleston", "Acadia")
 
 #Calculate overlapping number of users
 for (a in cities){
@@ -206,7 +205,9 @@ diag(B)<-0
 ```{r network graph between destinations}
 network <- graph.adjacency(B, mode="undirected", weighted=TRUE)
 E(network)$width <- E(network)$weight*100
+png(filename="cities_network.png")
 plot(network)
+dev.off()
 ```
 
 
