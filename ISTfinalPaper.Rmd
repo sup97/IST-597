@@ -1,0 +1,430 @@
+---
+title: "IST Final project"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+# Introduction
+
+# Method
+```{r environment}
+library(readr)
+library(tidyverse)
+library(data.table)
+library(statnet)
+```
+
+```{r}
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+```
+
+```{r read-in network data}
+PA <- read.delim("~/Box Sync/Python codes/twecoll/visitPA.dat", header=FALSE, sep=",")
+Pittsburg <- read.delim("~/Box Sync/Python codes/twecoll/vstpgh.dat", header=FALSE, sep=",")
+Philly <- read.delim("~/Box Sync/Python codes/twecoll/discoverPHL.dat", header=FALSE, sep=",")
+Washington <- read.delim("~/Box Sync/Python codes/twecoll/ExperienceWA.dat", header=FALSE, sep=",")
+Seattle <- read.delim("~/Box Sync/Python codes/twecoll/visitSeattle.dat", header=FALSE, sep=",")
+Carolina <- read.delim("~/Box Sync/Python codes/twecoll/Discover_SC.dat", header=FALSE, sep=",")
+Charleston <- read.delim("~/Box Sync/Python codes/twecoll/ExploreCHS.dat", header=FALSE, sep=",")
+USA <- read.delim("~/Box Sync/Python codes/twecoll/VisitTheUSA.dat", header=FALSE, sep=",")
+Korea <- read.delim("~/Box Sync/Python codes/twecoll/KoreanTravel.dat", header=FALSE, sep=",")
+Acadia <- read.delim("~/Box Sync/Python codes/twecoll/AcadiaNPS.dat", header=FALSE, sep=",", quote = "")
+
+#limit Korea's observation to 50K
+Korea <- slice(Korea, 1:50000)
+
+datasets <- c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea", "Acadia")
+
+#change the variable names
+for (i in datasets){
+  a = get(i)
+  names(a)[1:11] <- c("id", "user", "relationship","friendsCount", "followerCount","listedCount","tweets","joinDate", "url", "avatar", "location")
+  assign(i, a)
+}
+```
+
+```{r read-in exemplar data}
+naturelover <- read_csv("~/Box Sync/Python codes/GetOldTweets-python-master/naturelover.csv",
+                        col_types = cols_only(username = col_guess()))
+artCulture <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/artculture.csv", 
+                         ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
+
+heritage <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/heritage.csv", 
+                         ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
+
+shopping <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/#shopping.csv", 
+                         ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
+
+adventure <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/adventure.csv", 
+                         ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
+
+sports <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/sportstalk.csv", 
+                         ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
+
+exemplars <- c("naturelover", "shopping", "artCulture", "heritage", "adventure", "sports")
+
+for (i in exemplars){
+  a <- get(i)
+  names(a)[1] <- c("user")
+  assign(i, a)
+}
+
+#let's find the most frequently appearing user
+
+#natureF <- aggregate(list(numdup=rep(1,nrow(nature))), nature, length)
+#natureF <- natureF[order(-natureF$numdup),] 
+#head(natureF) # hmmm these do not seem like exemplars :()
+#natureF$user = gsub("\\@|,", "", natureF$user)
+#nature$user = gsub("\\@|,", "", nature$user)
+
+```
+
+```{r compare networks between the destinations}
+
+#Create matrix of destinations
+
+A = matrix(nrow=10, ncol=10)
+dimnames(A) = list(
+  c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea",  "Acadia"),         # row names 
+  c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea", "Acadia")) # column names 
+
+#Calculate overlapping number of users
+for (a in datasets){
+  for (b in datasets){
+    i <- get(a)
+    j <- get(b)
+    A[a,b] <- length(intersect(i$user, j$user))/length(intersect(i$user, i$user))
+  }
+}
+
+diag(A)<-0
+
+#just the US
+A = matrix(nrow=10, ncol=10)
+dimnames(A) = list(
+  c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea",  "Acadia"),         # row names 
+  c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea", "Acadia")) # column names 
+
+#Calculate overlapping number of users
+for (a in datasets){
+  for (b in datasets){
+    i <- get(a)
+    j <- get(b)
+    A[a,b] <- length(intersect(i$user, j$user))/length(intersect(i$user, i$user))
+  }
+}
+
+diag(A)<-0
+
+
+
+#just the cities
+B = matrix(nrow=6, ncol=6)
+dimnames(B) = list(
+  c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia"),         # row names 
+  c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia")) # column names 
+
+cities<-c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia")
+
+#Calculate overlapping number of users
+for (a in cities){
+  for (b in cities){
+    i <- get(a)
+    j <- get(b)
+    B[a,b] <- length(intersect(i$user, j$user))/length(intersect(i$user, i$user))
+  }
+}
+
+diag(B)<-0
+```
+
+```{r network graph between destinations}
+library(igraph)
+network <- graph.adjacency(A, mode="undirected", weighted=TRUE)
+E(network)$width <- E(network)$weight*50
+png(filename="all_network.png")
+plot(network)
+dev.off()
+
+network <- graph.adjacency(B, mode="undirected", weighted=TRUE)
+E(network)$width <- E(network)$weight*100
+plot(network)
+```
+
+```{r comparison with exmplars}
+
+C = matrix(nrow=6, ncol=6)
+dimnames(C) = list(
+  c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia"),         # row names 
+  c("naturelover", "shopping", "artCulture", "heritage", "adventure","sports")) # column names 
+
+#Calculate overlapping number of users
+for (a in cities){
+  for (b in exemplars){
+    i <- get(a)
+    j <- get(b)
+    C[a,b] <- length(intersect(i$user, j$user))/length(intersect(i$user, i$user))
+  }
+}
+
+C <- tbl_df(C)
+data <- 100*C
+
+data$destination = c("PennState", "Pittsburg", "Philly", "Seattle", "Charleston", "Acadia")
+
+data <- data %>%
+  gather(1:6, key="category", value="number")
+
+ggplot(data, aes(category, number, color=destination)) +
+  geom_point()
+
+ggplot(data, aes(destination, number, color=destination)) +
+  geom_point() + facet_wrap( ~ category)
+
+```
+
+```{r follower location analysis}
+library(ggmap)
+library(XML)
+library(geosphere)
+library(geonames)
+library(Imap)
+library(googleway)
+library(devtools)
+library(maps)
+library(maptools)
+#let's start with PA
+
+par(mfrow = c(2, 1))
+maps::map(database="world")
+maps::map("county")
+data(us.cities)
+
+locations <- tbl_df(Philly$location)
+locations$value <- tolower(locations$value)
+locations <- distinct(locations)
+locations <- subset(locations, locations$value!="")
+
+key='AIzaSyBIimyOvraEQlDEaMf5-0Dvnom7eDtPEMI'
+#lonlat3 <- NULL
+for(i in 2264:nrow(locations)){
+  lonlat2 <- google_geocode(address = locations$value[i], key = key)
+  lonlat2 <- lonlat2$results$geometry$location
+  print(i)
+  Sys.sleep(runif(1,1,3))
+  lonlat3 <- rbind(lonlat3, lonlat2)
+}
+
+lonlat3.lng <- lonlat3$lng
+lonlat3.lat <- lonlat3$lat
+
+lng <- tbl_df(lonlat3.lng)
+lat <- tbl_df(lonlat3.lat)
+
+lonlat3 <- dplyr::bind_cols(lng, lat)
+
+maps::map("world", fill=TRUE, col="white", bg="lightblue", ylim=c(-60, 90), mar=c(0,0,0,0))
+points(lonlat3.lng, lonlat3.lat, col="red", pch=)
+
+
+world_map + 
+      geom_point(data = lonlat3, aes(x = lng, y = lat), color = "red", size = 0.5)
+
+library(leaflet)
+library(gganimate)
+library(lubridate)
+library(ggthemes)
+
+site_locations <- leaflet(lonlat3) %>%
+  addTiles() %>%
+  addCircleMarkers(lng = ~long, lat = ~lat, popup = ~tweet_text,
+                   radius = 3, stroke = FALSE)
+
+site_locations
+
+```
+
+```{r text analysis for Philly and Charleston}
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(readr)
+
+PC <- load("~/Box Sync/Python codes/GetOldTweets-python-master/philly_charleston.csv")
+
+```
+
+I will start with removing stop words.
+```{r clean data}
+library(tidytext)
+library(stringr)
+
+replace_reg <- "https://t.co/[A-Za-z\\d]+|http://[A-Za-z\\d]+|&amp;|&lt;|&gt;|RT|https"
+unnest_reg <- "([^A-Za-z_\\d#@']|'(?![A-Za-z_\\d#@]))"
+
+#I want to eliminate some unmeaningful words like tweet, est, mi, fl, etc. (from the most frequent appearing words)
+
+#glimpse(stop_words)
+#stop_words$lexicon
+
+myStopWords <- matrix(c(),ncol=2,byrow=FALSE)
+colnames(myStopWords) <- c("word", "lexicon")
+myStopWords <- tbl_df(myStopWords)
+mstop_words <- tbl_df(stop_words)
+myStopWords <- bind_rows(mstop_words, myStopWords)
+
+tidy_tweets <- PC %>% 
+  filter(!str_detect(text, "^RT")) %>%
+  mutate(text = str_replace_all(text, replace_reg, "")) %>%
+  unnest_tokens(word, text, token = "regex", pattern = unnest_reg) %>%
+  filter(!word %in% myStopWords$word,
+         str_detect(word, "[a-z]"))
+
+names(tidy_tweets)
+```
+
+Le'ts look at simple frequency
+```{r simple frequency}
+library(tidyverse)
+
+frequency <- tidy_tweets %>% 
+  group_by(location) %>% 
+  count(word, sort = TRUE) %>% 
+  left_join(tidy_tweets %>% 
+              group_by(location) %>% 
+              summarise(total = n())) %>%
+  mutate(freq = n/total)
+
+glimpse(frequency)
+frequency <- tbl_df(frequency)
+frequency <- frequency[order(-frequency$freq),] 
+
+frequency 
+
+frequency2 <- frequency %>% 
+  select(location, word, freq) %>% 
+  spread(location, freq)
+```
+
+
+```{r graphs}
+library(scales)
+
+colnames(frequency2) <- c("word", "AnnArbor", "Blacksburg", "Champaign", "CollegeStation", "Gainesville", "StateCollege")
+
+#Do we want to compare college town to college town? I could not find a nice way to plot these yet
+ggplot(frequency2, aes(AnnArbor, Blacksburg)) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.25, height = 0.25) +
+  geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5) +
+  scale_x_log10(labels = percent_format()) +
+  scale_y_log10(labels = percent_format()) +
+  geom_abline(color = "red")
+
+ggplot(frequency2, aes(AnnArbor, StateCollege)) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.25, height = 0.25) +
+  geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5) +
+  scale_x_log10(labels = percent_format()) +
+  scale_y_log10(labels = percent_format()) +
+  geom_abline(color = "red")
+
+ggplot(frequency2, aes(Blacksburg, StateCollege)) +
+  geom_jitter(alpha = 0.1, size = 2.5, width = 0.25, height = 0.25) +
+  geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5) +
+  scale_x_log10(labels = percent_format()) +
+  scale_y_log10(labels = percent_format()) +
+  geom_abline(color = "red")
+```
+```{r wordcloud}
+library(wordcloud2)
+
+#delete the location names
+locationNames <- c("ann", "arbor", "michigan", "gainesville", "florida", "college", "station", "texas", "champaign", "illinois", "state", "pennsylvania", "blacksburg", "virginia")
+
+for (i in locationNames) {
+  frequency <- subset(frequency, word!=i)
+}
+
+#slice dataset by location
+AnnArbor <- subset(frequency, location=="Ann Arbor, MI")
+Gainesville <- subset(frequency, location=="Gainesville, FL")
+CollegeStation <- subset(frequency, location=="College Station, TX")
+Champaign <- subset(frequency, location=="Champaign, IL")
+StateCollege <- subset(frequency, location=="State College, PA")
+Blacksburg <- subset(frequency, location=="Blacksburg, VA")
+
+#mean(CollegeStation$freq)
+#median(CollegeStation$freq)
+
+wordCloud <- function(filename){
+  wordcloud(words=filename$word, freq=filename$freq, min.freq=median(filename$freq),
+          max.words=300, random.order=FALSE, random.color=FALSE, use.r.layout = TRUE,
+          colors=brewer.pal(8, "Dark2"))
+}
+
+wordCloud(CollegeStation)
+
+jpeg('~/Downloads/AnnArbor.jpg')
+wordCloud(AnnArbor)
+dev.off()
+jpeg('~/Downloads/Gainesville.jpg')
+wordCloud(Gainesville)
+dev.off()
+jpeg('~/Downloads/Collegestation.jpg')
+wordCloud(CollegeStation)
+dev.off()
+jpeg('~/Downloads/Champaing.jpg')
+wordCloud(Champaign)
+dev.off()
+jpeg('~/Downloads/Statecollege.jpg')
+wordCloud(StateCollege)
+dev.off()
+jpeg('~/Downloads/Blacksburg.jpg')
+wordCloud(Blacksburg)
+dev.off()
+
+```
