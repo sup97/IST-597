@@ -1,89 +1,40 @@
 ---
-title: "text analysis: bi-gram"
+title: "ISTfinalPaper_text_analysis_bigram"
 ---
 
-
-```{r load and subset data}
+```{r environment}
+library(readr)
+library(dplyr)
+library(data.table)
+library(statnet)
 library(lubridate)
 library(ggplot2)
-library(dplyr)
-library(readr)
-
-load("~/Downloads/coll_town_tweets.Rdata")
-
-tweets <- coll_town_user_tweets
-#names(tweets)
-
-data <- select(tweets, user, text, geo, place, timestamp_ms)
-
-towns<-c("Ithaca, NY", "State College, PA", "Bloomington, IN", "Lawrence,
-         KS", "Blacksburg, VA", "College Station, TX", "Columbia, MO",
-         "Champaign, IL", "Ann Arbor, MI", "Gainesville, FL")
-
-data_college_town <-data[grep(paste(towns,collapse="|"),
-                                                   data$place$full_name),]
-
-data_college_town$location <- data_college_town$place$full_name
-data_college_town$ID <- data_college_town$user$id
-data_college_town$user <- data_college_town$user$screen_name
-# data_college_town$coordinates <- data_college_town$geo$coordinates
-
-tweets_college_town <- select(data_college_town, location, ID, user, text, timestamp_ms)
 ```
 
-Remove bots from the data
-```{r}
-#botcleaned users
-load("~/Downloads/user_locations_botcleaned.Rdata")
+```{r load and subset data}
+discoverPHL <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/discoverPHL.csv", ";", escape_double = FALSE, trim_ws = TRUE)
 
-botCleaned <- user_locations_cleaned
-botCleaned$location_num<-rep(NA,1578)
-for(i in 1:1578){
-  botCleaned$location_num[i]<-length(user_locations_cleaned$locations[[i]])
-}
-botCleaned<-botCleaned[botCleaned$location_num<=25,]
+KKoreanTravel <- read_csv("~/Box Sync/Python codes/GetOldTweets-python-master/KoreanTravel.csv")
 
-tweets_college_town <- left_join(tweets_college_town, botCleaned, by="user")
-tweets_college_town <- subset(tweets_college_town, !is.na(probab))
-tweets_college_town <- subset(tweets_college_town, probab<0.59)
+ExploreCHS <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/ExploreCHS.csv", ";", escape_double = FALSE, trim_ws = TRUE)
 
-tweets_college_town[6:7] <- NULL
-tweets_college_town <- tbl_df(tweets_college_town)
+visitPA <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/visitPA.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+#names(KoreanTravel)
 
-#eliminating noticeable companies
-company <- c("UMtransit", "countryrecruits", "dominos", "Coyote_Careers", "_ChampaignIL", "hucksbeerbuzz", "SwampHead", "tmj_il_vets", "_GainesvilleFL", "PlastipakJobs", "SBCAnnArbor", "AbraJewelry")  #SBCAnnArbor is acupuncture company
-for (i in company) {
-  tweets_college_town <- subset(tweets_college_town, user!=i)
-}
-
-#View(tweets_college_town)
+names<-c("discoverPHL", "KoreanTravel", "ExploreCHS", "visitPA")
 ```
 
-
-```{r subset and prepare}
-library(quanteda)
-library(xtable)
-#slice dataset by location
-AnnArbor <- subset(tweets_college_town, location=="Ann Arbor, MI")
-Gainesville <- subset(tweets_college_town, location=="Gainesville, FL")
-CollegeStation <- subset(tweets_college_town, location=="College Station, TX")
-Champaign <- subset(tweets_college_town, location=="Champaign, IL")
-StateCollege <- subset(tweets_college_town, location=="State College, PA")
-Blacksburg <- subset(tweets_college_town, location=="Blacksburg, VA")
-
-#extract texts
-Atxt <- AnnArbor$text
-Btxt <- Blacksburg$text
-Ctxt <- Champaign$text
-CStxt <- CollegeStation$text
-Gtxt <- Gainesville$text
-Stxt <- StateCollege$text
-
-texts <- list(Atxt, Btxt, Ctxt, CStxt, Gtxt, Stxt)
-
-delete <- c("ann arbor", "college station", "arbor mi", "state college", "in gainesville", "station tx", "champaign il", "in champaign", "in college", "champaign illinois", "in ann", "gainesville fl", "gainesville florida", "in blacksburg", "blacksburg virginia", "arbor michigan", "college pa", "of illinois", "blacksburg va", "#annarbor", "ann", "arbor", "michigan", "gainesville", "florida", "college", "station", "texas", "champaign", "urbana", "illinois", "state", "pennsylvania", "blacksburg", "virginia", "#champaign", "hiring", "job", "#hiring", "#job", "tech", "#manufacturing", "#veterans", "#jobs", "#supplychain", "tweet", "est", "va", "fl", "tx", "fl", "il", "pa", "mi", "in")
+I will start with removing stop words.
+```{r clean data}
+library(tidytext)
+library(stringr)
 
 replace_reg <- c("https://t.co/", "http://", "&amp;", "&lt;", "&gt;", "RT", "https")
+
+Atxt <- discoverPHL$text
+Btxt <- KoreanTravel$text
+Ctxt <- ExploreCHS$text
+Dtxt <- visitPA$text
 
 rmNonAlphabet <- function(str) {
   words <- unlist(strsplit(str, " "))
@@ -93,13 +44,33 @@ rmNonAlphabet <- function(str) {
 }
 ```
 
+```{r wordcloud function}
+library(wordcloud2)
 
-```{r Ann}
-##Ann Arbor
+wordCloud <- function(filename){
+  wordcloud2(data=filename, size = 1, minSize = 0, gridSize =  0,
+    fontFamily = 'Segoe UI', fontWeight = 'bold',
+    color = 'random-dark', backgroundColor = "white",
+    minRotation = -pi/4, maxRotation = pi/4, shuffle = TRUE,
+    rotateRatio = 0.4, shape = 'circle', ellipticity = 0.65,
+    widgetsize = NULL, figPath = NULL, hoverFunction = NULL)
+}
+
+```
+
+```{r discoverPHL}
+library(quanteda)
+library(xtable)
+library(tidyverse)
+library("htmlwidgets")
+library(webshot)
+
 Atxt <- Atxt %>%
   rmNonAlphabet()
 
-Ann <- tokens(Atxt) %>%
+delete <- c("http", "https", "instagram", "philadelphia", "status", "us", "day", "visitphilly", "discoverphl") #remove unrelevant words
+
+PHL <- tokens(Atxt) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
     tokens_remove(stopwords("english"), padding  = TRUE) %>%
     tokens_remove(delete, padding  = TRUE) %>%
@@ -107,76 +78,62 @@ Ann <- tokens(Atxt) %>%
     tokens_ngrams(n = 2) %>%
     dfm()
 
-textstat_lexdiv(Ann)
-textstat_frequency(Ann)
-xtable(tbl_df(topfeatures(Ann)))
-textplot_network(Ann, min_freq = 3, omit_isolated = TRUE,
-  edge_color = "#1F78B4", edge_alpha = 0.5, edge_size = 2,
-  vertex_color = "#4D4D4D", vertex_size = 2, vertex_labelcolor = NULL,
-  offset = NULL, vertex_labelfont = NULL)
+textstat_lexdiv(PHL)
+textstat_frequency(PHL)
+xtable(tbl_df(topfeatures(PHL)))
+head(PHL)
+dPHL <- tbl_df(textstat_frequency(PHL)) #need frequency info
+head(dPHL)
+
+#let's create world cloud
+dPHL <- dplyr::select(dPHL, feature, frequency)
+#save images to pdf
+# Make the graph
+p1 <- wordCloud(dPHL)
+# save it in html
+saveWidget(p1,"p1.html",selfcontained = F)
+webshot("p1.html","bPHL.png", delay =30, vwidth = 480, vheight=480)
 ```
 
-
-```{r Ann}
-##Ann Arbor
-Atxt <- Atxt %>%
-  rmNonAlphabet()
-
-Ann <- tokens(Atxt) %>%
-    tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
-    tokens_remove(stopwords("english"), padding  = TRUE) %>%
-    tokens_remove(delete, padding  = TRUE) %>%
-    tokens_remove(replace_reg, padding  = TRUE) %>%
-    tokens_ngrams(n = 2) %>%
-    dfm()
-
-textstat_lexdiv(Ann)
-textstat_frequency(Ann)
-xtable(tbl_df(topfeatures(Ann)))
-textplot_network(Ann, min_freq = 3, omit_isolated = TRUE,
-  edge_color = "#1F78B4", edge_alpha = 0.5, edge_size = 2,
-  vertex_color = "#4D4D4D", vertex_size = 2, vertex_labelcolor = NULL,
-  offset = NULL, vertex_labelfont = NULL)
-```
-
-
-```{r Ann}
-##Ann Arbor
-Atxt <- Atxt %>%
-  rmNonAlphabet()
-
-Ann <- tokens(Atxt) %>%
-    tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
-    tokens_remove(stopwords("english"), padding  = TRUE) %>%
-    tokens_remove(delete, padding  = TRUE) %>%
-    tokens_remove(replace_reg, padding  = TRUE) %>%
-    tokens_ngrams(n = 2) %>%
-    dfm()
-
-textstat_lexdiv(Ann)
-textstat_frequency(Ann)
-xtable(tbl_df(topfeatures(Ann)))
-```
-
-```{r Blacks}
+```{r KoreanTravel}
 Btxt <- Btxt %>%
   rmNonAlphabet()
 
-Black <- tokens(Btxt) %>%
+delete <- c("http", "https", "southkorea", "korea", "koreantravel", "infohttp", "status", "=", "south", "travelkorea", "visitkorea") #remove unrelevant words
+
+KR <- tokens(Btxt, remove_puct=T, remove_numbers=T, remove_symbols=T, remove_url=T) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
     tokens_remove(stopwords("english"), padding  = TRUE) %>%
     tokens_remove(delete, padding  = TRUE) %>%
     tokens_remove(replace_reg, padding  = TRUE) %>%
     tokens_ngrams(n = 2) %>%
     dfm()
-xtable(tbl_df(topfeatures(Black)))
+
+textstat_lexdiv(KR)
+textstat_frequency(KR)
+xtable(tbl_df(topfeatures(KR)))
+head(KR)
+dKR <- tbl_df(textstat_frequency(KR)) #need frequency info
+#dKR <- slice(dKR, 2:10455)
+head(dKR)
+
+#let's create world cloud
+dKR <- dplyr::select(dKR, feature, frequency)
+#save images to pdf
+# Make the graph
+p2 <- wordCloud(dKR)
+# save it in html
+saveWidget(p2,"p2.html",selfcontained = F)
+webshot("p2.html","bKR.png", delay =10, vwidth = 480, vheight=480)
 ```
 
-```{r Champaign}
+```{r ExploreCHS}
 Ctxt <- Ctxt %>%
   rmNonAlphabet()
 
-Cham <- tokens(Ctxt) %>%
+delete <- c("http", "https", "charleston", "explorechs", "us", "p", "status", "check") #remove unrelevant words
+
+CHS <- tokens(Ctxt, remove_puct=T, remove_numbers=T, remove_symbols=T, remove_url=T) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
     tokens_remove(stopwords("english"), padding  = TRUE) %>%
     tokens_remove(delete, padding  = TRUE) %>%
@@ -184,14 +141,30 @@ Cham <- tokens(Ctxt) %>%
     tokens_ngrams(n = 2) %>%
     dfm()
 
-xtable(tbl_df(topfeatures(Cham)))
+textstat_lexdiv(CHS)
+textstat_frequency(CHS)
+xtable(tbl_df(topfeatures(CHS)))
+head(CHS)
+dCHS <- tbl_df(textstat_frequency(CHS)) #need frequency info
+head(dCHS)
+
+#let's create world cloud
+dCHS <- dplyr::select(dCHS, feature, frequency)
+#save images to pdf
+# Make the graph
+p3 <- wordCloud(dCHS)
+# save it in html
+saveWidget(p3,"p3.html",selfcontained = F)
+webshot("p3.html","bCHS.png", delay =30, vwidth = 480, vheight=480)
 ```
 
-```{r College Station}
-CStxt <- CStxt %>%
+```{r visitPA}
+Dtxt <- Dtxt %>%
   rmNonAlphabet()
 
-CS <- tokens(CStxt) %>%
+delete <- c("http", "https", "pennsylvania", "visitpa", "us", "p", "status", "rt", "state", "day", "=", "pa", "c", "check") #remove unrelevant words
+
+PA <- tokens(Dtxt, remove_puct=T, remove_numbers=T, remove_symbols=T, remove_url=T, remove_twitter=T) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
     tokens_remove(stopwords("english"), padding  = TRUE) %>%
     tokens_remove(delete, padding  = TRUE) %>%
@@ -199,40 +172,27 @@ CS <- tokens(CStxt) %>%
     tokens_ngrams(n = 2) %>%
     dfm()
 
-xtable(tbl_df(topfeatures(CS)))
+textstat_lexdiv(PA)
+textstat_frequency(PA)
+xtable(tbl_df(topfeatures(PA)))
+head(PA)
+dPA <- tbl_df(textstat_frequency(PA)) #need frequency info
+head(dPA)
+
+#let's create world cloud
+dPA <- dplyr::select(dPA, feature, frequency)
+#save images to pdf
+# Make the graph
+p4 <- wordCloud(dPA)
+# save it in html
+saveWidget(p4,"p4.html",selfcontained = F)
+webshot("p4.html","bPA.png", delay =20, vwidth = 480, vheight=480)
 ```
 
-```{r Gainesville}
-Gtxt <- Gtxt %>%
-  rmNonAlphabet()
-
-Gaines <- tokens(Gtxt) %>%
-    tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
-    tokens_remove(stopwords("english"), padding  = TRUE) %>%
-    tokens_remove(delete, padding  = TRUE) %>%
-    tokens_remove(replace_reg, padding  = TRUE) %>%
-    tokens_ngrams(n = 2) %>%
-    dfm()
-
-xtable(tbl_df(topfeatures(Gaines)))
-```
-
-```{r State College}
-Stxt <- Stxt %>%
-  rmNonAlphabet()
-
-SC <- tokens(Stxt) %>%
-    tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
-    tokens_remove(stopwords("english"), padding  = TRUE) %>%
-    tokens_remove(delete, padding  = TRUE) %>%
-    tokens_remove(replace_reg, padding  = TRUE) %>%
-    tokens_ngrams(n = 2) %>%
-    dfm()
-
-xtable(tbl_df(topfeatures(SC)))
+```{r}
 #create one table for all college towns
 table <- tbl_df(matrix(c(1:10), ncol=1))
-list <- list(Ann, Black, Cham, CS, Gaines, SC)
+list <- list(KR, PA, PHL, CHS)
 for (i in list){
   i <- tbl_df(topfeatures(i))
   i$word <- rownames(i)

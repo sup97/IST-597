@@ -99,7 +99,7 @@ webshot("p1.html","PHL.png", delay =30, vwidth = 480, vheight=480)
 Btxt <- Btxt %>%
   rmNonAlphabet()
 
-delete <- c("http", "https", "southkorea", "korea", "koreantravel", "infohttp", "status", "=") #remove unrelevant words
+delete <- c("http", "https", "southkorea", "korea", "koreantravel", "infohttp", "status", "=", "south") #remove unrelevant words
 
 KR <- tokens(Btxt, remove_puct = TRUE, remove_numbers = TRUE) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
@@ -123,15 +123,15 @@ dKR <- dplyr::select(dKR, feature, frequency)
 # Make the graph
 p2 <- wordCloud(dKR)
 # save it in html
-saveWidget(p2,"p2.html",selfcontained = F)
-webshot("p2.html","KR.png", delay =30, vwidth = 480, vheight=480)
+#saveWidget(p2,"p2.html",selfcontained = F)
+#webshot("p2.html","KR.png", delay =30, vwidth = 480, vheight=480)
 ```
 
 ```{r ExploreCHS}
 Ctxt <- Ctxt %>%
   rmNonAlphabet()
 
-delete <- c("http", "https", "charleston", "explorechs", "us", "p", "status") #remove unrelevant words
+delete <- c("http", "https", "charleston", "explorechs", "us", "p", "status", "check") #remove unrelevant words
 
 CHS <- tokens(Ctxt, remove_puct = TRUE, remove_numbers = TRUE) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
@@ -154,15 +154,45 @@ dCHS <- dplyr::select(dCHS, feature, frequency)
 # Make the graph
 p3 <- wordCloud(dCHS)
 # save it in html
-saveWidget(p3,"p3.html",selfcontained = F)
-webshot("p3.html","CHS.png", delay =30, vwidth = 480, vheight=480)
+#saveWidget(p3,"p3.html",selfcontained = F)
+#webshot("p3.html","CHS.png", delay =30, vwidth = 480, vheight=480)
 ```
 
+```{r visitPA}
+Dtxt <- Dtxt %>%
+  rmNonAlphabet()
+
+delete <- c("http", "https", "pennsylvania", "visitpa", "us", "p", "status", "rt", "state", "day", "=", "pa", "c", "check") #remove unrelevant words
+
+PA <- tokens(Dtxt, remove_puct = TRUE, remove_numbers = TRUE) %>%
+    tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
+    tokens_remove(stopwords("english"), padding  = TRUE) %>%
+    tokens_remove(delete, padding  = TRUE) %>%
+    tokens_remove(replace_reg, padding  = TRUE) %>%
+    tokens_ngrams(n = 1) %>%
+    dfm()
+
+textstat_lexdiv(PA)
+textstat_frequency(PA)
+xtable(tbl_df(topfeatures(PA)))
+head(PA)
+dPA <- tbl_df(textstat_frequency(PA)) #need frequency info
+head(dPA)
+
+#let's create world cloud
+dPA <- dplyr::select(dPA, feature, frequency)
+#save images to pdf
+# Make the graph
+p4 <- wordCloud(dPA)
+# save it in html
+#saveWidget(p4,"p4.html",selfcontained = F)
+#webshot("p4.html","PA.png", delay =30, vwidth = 480, vheight=480)
+```
 
 ```{r}
 #create one table for all college towns
 table <- tbl_df(matrix(c(1:10), ncol=1))
-list <- list(dPHL, dKR, dCHS)
+list <- list(KR, PA, PHL, CHS)
 for (i in list){
   i <- tbl_df(topfeatures(i))
   i$word <- rownames(i)
@@ -172,3 +202,45 @@ for (i in list){
 
 xtable(table)
 ```
+
+
+```{r}
+T = matrix(nrow=4, ncol=6)
+dimnames(T) = list(
+  c("dKR", "dPA", "dPHL", "dCHS"),         # row names 
+  c("nature", "shopping", "culture", "heritage", "adventure", "sports")) # column names 
+
+data <- c("dKR", "dPA", "dPHL", "dCHS")
+#Calculate overlapping number of users
+attributes <- "nature shopping culture heritage adventure sports"
+attributes <- strsplit(attributes, " ")[[1]]
+
+for (a in data){
+  for (b in attributes){
+    i <- get(a)
+    T[a,b] <- sum(i$frequency[str_count(i$feature, b)>0])/sum(dKR$frequency)
+  }
+}
+
+T <- tbl_df(T)
+data <- 100*T
+
+data$destination = c("dKR", "dPA", "dPHL", "dCHS")
+
+data <- data %>%
+  gather(1:4, key="category", value="number")
+
+#ggplot(data, aes(category, number, color=destination)) +
+ # geom_point()
+
+ggplot(data, aes(destination, number, color=destination)) +
+  geom_point() + 
+  facet_wrap( ~ category) + 
+  scale_color_manual(values = brewer.pal(n = 10, name = "RdBu")) +  
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  xlab("Destination") +
+  ylab("Overlap")
+
+```
+

@@ -38,24 +38,24 @@ for (i in datasets){
 ```
 
 ```{r read-in exemplar data}
-naturelover <- read_csv("~/Box Sync/Python codes/GetOldTweets-python-master/naturelover.csv",
-                        col_types = cols_only(username = col_guess()))
-artCulture <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/artculture.csv", 
+nature <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/nature.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+
+culture <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/culture.csv", 
                          ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
 
-heritage <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/heritage.csv", 
+heritage <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/heritage2.csv", 
                          ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
 
-shopping <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/#shopping.csv", 
+shopping <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/shopping.csv", 
                          ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
 
-adventure <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/adventure.csv", 
+adventure <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/adventure2.csv", 
                          ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
 
 sports <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/sportstalk2.csv", 
                          ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
 
-exemplars <- c("naturelover", "shopping", "artCulture", "heritage", "adventure", "sports")
+exemplars <- c("nature", "shopping", "culture", "heritage", "adventure", "sports")
 
 for (i in exemplars){
   a <- get(i)
@@ -164,10 +164,13 @@ dev.off()
 
 
 ```{r comparison with exmplars}
+
+library("RColorBrewer")
+
 D = matrix(nrow=10, ncol=6)
 dimnames(D) = list(
   c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Carolina", "Charleston", "USA", "Korea",  "Acadia"),         # row names 
-  c("naturelover", "shopping", "artCulture", "heritage", "adventure","sports")) # column names 
+  c("nature", "shopping", "culture", "heritage", "adventure","sports")) # column names 
 
 #Calculate overlapping number of users
 for (a in datasets){
@@ -186,13 +189,21 @@ data$destination = c("PA", "Pittsburg", "Philly", "Washington", "Seattle", "Caro
 data <- data %>%
   gather(1:6, key="category", value="number")
 
-ggplot(data, aes(category, number, color=destination)) +
-  geom_point()
+#ggplot(data, aes(category, number, color=destination)) +
+ # geom_point()
 
 ggplot(data, aes(destination, number, color=destination)) +
-  geom_point() + facet_wrap( ~ category)
+  geom_point() + 
+  facet_wrap( ~ category) + 
+  scale_color_manual(values = brewer.pal(n = 10, name = "RdBu")) +  
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  xlab("Destination") +
+  ylab("Overlap")
 
 ```
+
 
 ```{r follower location analysis}
 library(ggmap)
@@ -219,7 +230,7 @@ locations <- subset(locations, locations$value!="")
 key='AIzaSyBIimyOvraEQlDEaMf5-0Dvnom7eDtPEMI'
 
 #lonlat3 <- NULL
-for(i in 264:nrow(locations)){
+for(i in 1:nrow(locations)){
   lonlat2 <- google_geocode(address = locations$value[i], key = key)
   lonlat2 <- lonlat2$results$geometry$location
   print(i)
