@@ -204,15 +204,15 @@ xtable(table)
 ```
 
 
-```{r}
+```{r text frequency}
 T = matrix(nrow=4, ncol=6)
 dimnames(T) = list(
   c("dKR", "dPA", "dPHL", "dCHS"),         # row names 
-  c("nature", "shopping", "culture", "heritage", "adventure", "sports")) # column names 
+  c("nature", "night", "culture", "heritage", "adventure", "sports")) # column names 
 
 data <- c("dKR", "dPA", "dPHL", "dCHS")
 #Calculate overlapping number of users
-attributes <- "nature shopping culture heritage adventure sports"
+attributes <- "nature night culture heritage adventure sports"
 attributes <- strsplit(attributes, " ")[[1]]
 
 for (a in data){
@@ -228,11 +228,11 @@ data <- 100*T
 data$destination = c("dKR", "dPA", "dPHL", "dCHS")
 
 data <- data %>%
-  gather(1:4, key="category", value="number")
+  gather(1:6, key="category", value="number")
 
 #ggplot(data, aes(category, number, color=destination)) +
  # geom_point()
-
+png(filename="text.png") #save the plot
 ggplot(data, aes(destination, number, color=destination)) +
   geom_point() + 
   facet_wrap( ~ category) + 
@@ -241,6 +241,7 @@ ggplot(data, aes(destination, number, color=destination)) +
         axis.ticks.x=element_blank()) +
   xlab("Destination") +
   ylab("Overlap")
+dev.off()
 
 ```
 

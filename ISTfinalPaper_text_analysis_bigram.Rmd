@@ -14,7 +14,7 @@ library(ggplot2)
 ```{r load and subset data}
 discoverPHL <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/discoverPHL.csv", ";", escape_double = FALSE, trim_ws = TRUE)
 
-KKoreanTravel <- read_csv("~/Box Sync/Python codes/GetOldTweets-python-master/KoreanTravel.csv")
+KoreanTravel <- read_csv("~/Box Sync/Python codes/GetOldTweets-python-master/KoreanTravel.csv")
 
 ExploreCHS <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/ExploreCHS.csv", ";", escape_double = FALSE, trim_ws = TRUE)
 
@@ -91,8 +91,8 @@ dPHL <- dplyr::select(dPHL, feature, frequency)
 # Make the graph
 p1 <- wordCloud(dPHL)
 # save it in html
-saveWidget(p1,"p1.html",selfcontained = F)
-webshot("p1.html","bPHL.png", delay =30, vwidth = 480, vheight=480)
+#saveWidget(p1,"p1.html",selfcontained = F)
+#webshot("p1.html","bPHL.png", delay =30, vwidth = 480, vheight=480)
 ```
 
 ```{r KoreanTravel}
@@ -123,8 +123,8 @@ dKR <- dplyr::select(dKR, feature, frequency)
 # Make the graph
 p2 <- wordCloud(dKR)
 # save it in html
-saveWidget(p2,"p2.html",selfcontained = F)
-webshot("p2.html","bKR.png", delay =10, vwidth = 480, vheight=480)
+#saveWidget(p2,"p2.html",selfcontained = F)
+#webshot("p2.html","bKR.png", delay =10, vwidth = 480, vheight=480)
 ```
 
 ```{r ExploreCHS}
@@ -154,8 +154,8 @@ dCHS <- dplyr::select(dCHS, feature, frequency)
 # Make the graph
 p3 <- wordCloud(dCHS)
 # save it in html
-saveWidget(p3,"p3.html",selfcontained = F)
-webshot("p3.html","bCHS.png", delay =30, vwidth = 480, vheight=480)
+#saveWidget(p3,"p3.html",selfcontained = F)
+#webshot("p3.html","bCHS.png", delay =30, vwidth = 480, vheight=480)
 ```
 
 ```{r visitPA}
@@ -185,8 +185,8 @@ dPA <- dplyr::select(dPA, feature, frequency)
 # Make the graph
 p4 <- wordCloud(dPA)
 # save it in html
-saveWidget(p4,"p4.html",selfcontained = F)
-webshot("p4.html","bPA.png", delay =20, vwidth = 480, vheight=480)
+#saveWidget(p4,"p4.html",selfcontained = F)
+#webshot("p4.html","bPA.png", delay =20, vwidth = 480, vheight=480)
 ```
 
 ```{r}
