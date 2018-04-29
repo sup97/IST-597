@@ -70,7 +70,7 @@ Atxt <- Atxt %>%
 
 delete <- c("http", "https", "instagram", "philadelphia", "status", "us", "day", "visitphilly", "discoverphl") #remove unrelevant words
 
-PHL <- tokens(Atxt) %>%
+PHL <- tokens(Atxt, remove_puct=TRUE, remove_numbers=TRUE, remove_symbols=TRUE, remove_url=TRUE) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
     tokens_remove(stopwords("english"), padding  = TRUE) %>%
     tokens_remove(delete, padding  = TRUE) %>%
@@ -89,7 +89,7 @@ head(dPHL)
 dPHL <- dplyr::select(dPHL, feature, frequency)
 #save images to pdf
 # Make the graph
-p1 <- wordCloud(dPHL)
+#p1 <- wordCloud(dPHL)
 # save it in html
 #saveWidget(p1,"p1.html",selfcontained = F)
 #webshot("p1.html","bPHL.png", delay =30, vwidth = 480, vheight=480)
@@ -101,7 +101,7 @@ Btxt <- Btxt %>%
 
 delete <- c("http", "https", "southkorea", "korea", "koreantravel", "infohttp", "status", "=", "south", "travelkorea", "visitkorea") #remove unrelevant words
 
-KR <- tokens(Btxt, remove_puct=T, remove_numbers=T, remove_symbols=T, remove_url=T) %>%
+KR <- tokens(Btxt, remove_puct=TRUE, remove_numbers=TRUE, remove_symbols=TRUE, remove_url=TRUE) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
     tokens_remove(stopwords("english"), padding  = TRUE) %>%
     tokens_remove(delete, padding  = TRUE) %>%
@@ -121,7 +121,7 @@ head(dKR)
 dKR <- dplyr::select(dKR, feature, frequency)
 #save images to pdf
 # Make the graph
-p2 <- wordCloud(dKR)
+#p2 <- wordCloud(dKR)
 # save it in html
 #saveWidget(p2,"p2.html",selfcontained = F)
 #webshot("p2.html","bKR.png", delay =10, vwidth = 480, vheight=480)
@@ -133,7 +133,7 @@ Ctxt <- Ctxt %>%
 
 delete <- c("http", "https", "charleston", "explorechs", "us", "p", "status", "check") #remove unrelevant words
 
-CHS <- tokens(Ctxt, remove_puct=T, remove_numbers=T, remove_symbols=T, remove_url=T) %>%
+CHS <- tokens(Ctxt, remove_puct=TRUE, remove_numbers=TRUE, remove_symbols=TRUE, remove_url=TRUE) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
     tokens_remove(stopwords("english"), padding  = TRUE) %>%
     tokens_remove(delete, padding  = TRUE) %>%
@@ -152,7 +152,7 @@ head(dCHS)
 dCHS <- dplyr::select(dCHS, feature, frequency)
 #save images to pdf
 # Make the graph
-p3 <- wordCloud(dCHS)
+#p3 <- wordCloud(dCHS)
 # save it in html
 #saveWidget(p3,"p3.html",selfcontained = F)
 #webshot("p3.html","bCHS.png", delay =30, vwidth = 480, vheight=480)
@@ -164,7 +164,7 @@ Dtxt <- Dtxt %>%
 
 delete <- c("http", "https", "pennsylvania", "visitpa", "us", "p", "status", "rt", "state", "day", "=", "pa", "c", "check") #remove unrelevant words
 
-PA <- tokens(Dtxt, remove_puct=T, remove_numbers=T, remove_symbols=T, remove_url=T, remove_twitter=T) %>%
+PA <- tokens(Dtxt, remove_puct=TRUE, remove_numbers=TRUE, remove_symbols=TRUE, remove_url=TRUE) %>%
     tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
     tokens_remove(stopwords("english"), padding  = TRUE) %>%
     tokens_remove(delete, padding  = TRUE) %>%
@@ -183,22 +183,53 @@ head(dPA)
 dPA <- dplyr::select(dPA, feature, frequency)
 #save images to pdf
 # Make the graph
-p4 <- wordCloud(dPA)
+#p4 <- wordCloud(dPA)
 # save it in html
 #saveWidget(p4,"p4.html",selfcontained = F)
 #webshot("p4.html","bPA.png", delay =20, vwidth = 480, vheight=480)
 ```
 
+```{r AcadiaNPS}
+Etxt <- Etxt %>%
+  rmNonAlphabet()
+
+delete <- c("acadia", "acadianps", "us", "p", "status", "rt", "state", "day", "=", "c", "check", "maine") #remove unrelevant words
+
+AD <- tokens(Etxt, remove_puct = TRUE, remove_symbols = TRUE, remove_numbers = TRUE, remove_url=TRUE) %>%
+    tokens_remove("\\p{P}", valuetype = "regex", padding = TRUE) %>%
+    tokens_remove(stopwords("english"), padding  = TRUE) %>%
+    tokens_remove(delete, padding  = TRUE) %>%
+    tokens_remove(replace_reg, padding  = TRUE) %>%
+    tokens_ngrams(n = 2) %>%
+    dfm()
+
+textstat_lexdiv(AD)
+textstat_frequency(AD)
+xtable(tbl_df(topfeatures(AD)))
+head(AD)
+dAD <- tbl_df(textstat_frequency(AD)) #need frequency info
+head(dAD)
+
+#let's create world cloud
+dAD <- dplyr::select(dAD, feature, frequency)
+#save images to pdf
+# Make the graph
+#p5 <- wordCloud(dAD)
+# save it in html
+#saveWidget(p5,"p5.html",selfcontained = F)
+#webshot("p5.html","bAD.png", delay =20, vwidth = 480, vheight=480)
+```
+
 ```{r}
 #create one table for all college towns
 table <- tbl_df(matrix(c(1:10), ncol=1))
-list <- list(KR, PA, PHL, CHS)
+list <- list(KR, PA, PHL, CHS, AD)
 for (i in list){
   i <- tbl_df(topfeatures(i))
   i$word <- rownames(i)
   i <- i[c(2,1)]
   table <- cbind(table, i)
 }
-
-xtable(table)
+table[1] <- NULL
+xtable(table, digits=0)
 ```

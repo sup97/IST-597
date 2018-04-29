@@ -203,6 +203,45 @@ ggplot(data, aes(destination, number, color=destination)) +
   xlab("Destination") +
   ylab("Overlap")
 dev.off()
+
+
+datasets2 <- c("PA", "Philly", "Charleston", "Korea",  "Acadia")
+D = matrix(nrow=5, ncol=6)
+dimnames(D) = list(
+  c("PA", "Philly", "Charleston", "Korea",  "Acadia"),         # row names 
+  c("nature", "nightlife", "culture", "heritage", "adventure", "sports")) # column names 
+
+#Calculate overlapping number of users
+for (a in datasets2){
+  for (b in exemplars){
+    i <- get(a)
+    j <- get(b)
+    D[a,b] <- length(intersect(i$user, j$user))/length(intersect(i$user, i$user))
+  }
+}
+
+D <- tbl_df(D)
+data <- 100*D
+
+data$destination = c("Pennsylvania", "Philadelphia", "Charleston", "South Korea",  "Acadia")
+
+data <- data %>%
+  gather(1:6, key="category", value="number")
+
+#ggplot(data, aes(category, number, color=destination)) +
+ # geom_point()
+
+png(filename="attributes2.png") 
+ggplot(data, aes(destination, number, color=destination)) +
+  geom_point() + 
+  facet_wrap( ~ category) + 
+  scale_color_manual(values = brewer.pal(n = 10, name = "RdYlBu")) +  
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  xlab("Destination") +
+  ylab("Overlap")
+dev.off()
 ```
 
 
