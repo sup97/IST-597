@@ -196,7 +196,7 @@ png(filename="attributes.png")
 ggplot(data, aes(destination, number, color=destination)) +
   geom_point() + 
   facet_wrap( ~ category) + 
-  scale_color_manual(values = brewer.pal(n = 10, name = "RdBu")) +  
+  scale_color_manual(values = brewer.pal(n = 10, name = "RdYlBu")) +  
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank()) +
