@@ -49,11 +49,11 @@ heritage <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/herit
 nightlife <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/nightlife.csv", 
                          ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
 
-adventure <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/adventure3.csv", 
-                         ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
+adventure <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/adventure2.csv", 
+                         ",", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
 
-sports <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/sports.csv", 
-                         ";", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
+sports <- read_delim("~/Box Sync/Python codes/GetOldTweets-python-master/sports1.csv", 
+                         ",", escape_double = FALSE, col_types = cols(geo = col_skip(), hashtags = col_skip(), id = col_skip(), mentions = col_skip()), trim_ws = TRUE)
 
 exemplars <- c("nature", "nightlife", "culture", "heritage", "adventure", "sports")
 
